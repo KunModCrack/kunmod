@@ -1,4 +1,43 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -6,161 +45,291 @@
     <title>KunModCrack - Fake Lag Download</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
-            height: 100vh;
+            padding: 0;
+            background-color: #0f0c29;
+            color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #000; /* Background màu đen */
-            overflow: hidden;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-        .container {
-            text-align: center;
-            z-index: 1;
-            position: relative;
-        }
-        h1 {
-            color: #fff;
-            font-size: 1.5em; /* Thu nhỏ chữ từ 2em xuống 1.5em */
-            margin-bottom: 20px;
-            position: relative;
-            background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            animation: rainbow 6s linear infinite;
-            box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.2); /* Viền mờ tròn phía sau chữ */
-            padding: 10px;
-            border-radius: 15px;
-        }
-        h1::before {
-            content: "KunModCrack - Fake Lag Download";
-            position: absolute;
-            top: 0;
-            left: 0;
+
+        #particles-js {
+            position: fixed;
             width: 100%;
             height: 100%;
-            color: #fff;
-            -webkit-text-stroke: 2px #fff;
+            top: 0;
+            left: 0;
             z-index: -1;
-            overflow: hidden;
-            animation: borderAnimation 3s linear infinite;
         }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: 700;
+            padding: 15px;
+            background: linear-gradient(
+                90deg,
+                #ff0000, /* Đỏ */
+                #ff9900, /* Cam */
+                #ffff00, /* Vàng */
+                #00ff00, /* Lục */
+                #00ccff, /* Lam */
+                #cc00ff, /* Chàm */
+                #ff00cc  /* Tím */
+            );
+            background-size: 1400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            animation: rainbow 8s linear infinite;
+            box-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.6),
+                0 0 30px rgba(255, 255, 255, 0.4);
+        }
+
         @keyframes rainbow {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
+            0% {
+                background-position: 0%;
+            }
+            100% {
+                background-position: 1400%;
+            }
         }
-        @keyframes borderAnimation {
-            0% { clip-path: inset(0 100% 0 0); }
-            100% { clip-path: inset(0 0 0 100%); }
-        }
-        .button-group {
+
+        .main-content {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            gap: 20px;
         }
-        .download-btn {
+
+        .section {
+            flex: 1;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+            text-align: left;
+        }
+
+        .link-button {
             display: flex;
-            justify-content: flex-start; /* Chỉnh lại để icon và chữ thẳng hàng */
             align-items: center;
-            padding: 10px 15px;
-            font-size: 1.1em;
-            color: #fff;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             text-decoration: none;
-            transition: background 0.3s, transform 0.2s;
-            width: 280px; /* Tăng chiều rộng để vừa icon và text */
-            margin: 0 auto;
-            box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.2); /* Viền mờ tròn phía sau nút */
+            color: white;
+            transition: all 0.3s ease;
+            font-size: 16px;
         }
-        .download-btn:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(1.05);
+
+        .link-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
         }
-        .download-btn .label {
+
+        .link-button i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .button-text {
             flex-grow: 1;
             text-align: left;
         }
-        .download-btn .status {
-            background: rgba(255, 255, 255, 0.3);
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 0.9em;
-            margin-left: auto; /* Đẩy status về cuối */
+
+        .tag {
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
         }
-        .download-btn i {
-            margin-right: 12px; /* Tạo khoảng cách giữa icon và chữ */
+
+        .tag-stable { background-color: #28a745; }
+        .tag-optimized { background-color: #007bff; }
+        .tag-new { background-color: #6f42c1; }
+        .tag-tiktok { background-color: #ffc107; color: #000; }
+        .tag-notification { background-color: #dc3545; }
+        .tag-chat { background-color: #17a2b8; }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ccc;
         }
-        .footer-text {
-            color: #fff;
-            font-size: 1.2em;
-            margin-top: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            font-weight: bold; /* Làm đậm hai dòng cuối */
+
+        .footer a {
+            color: #00aaff;
+            text-decoration: none;
         }
-        #particles-js {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: 0;
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                gap: 0;
+            }
+            .container {
+                max-width: 450px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="particles-js"></div>
+
     <div class="container">
-        <h1>KunModCrack - Fake Lag Download</h1>
-        <div class="button-group">
-            <a href="https://vuotnhanh.com/hoppercrackshinmod" class="download-btn">
-                <i class="fas fa-download"></i> <span class="label">Download FakeLag Hopper</span>
-                <span class="status" style="background: rgba(0, 255, 0, 0.3);">New | Key hopper</span>
-            </a>
-            <a href="https://link4sub.com/MjUi"  class="download-btn">
-                <i class="fas fa-download"></i> <span class="label">Download FakeLag V5</span>
-                <span class="status" style="background: rgba(0, 0, 255, 0.3);">Optimized | Key kunmodv5</span>
-            </a>
-            <a href="https://link4sub.com/Irvg" class="download-btn">
-                <i class="fas fa-download"></i> <span class="label">Download FakeLag V6</span>
-                <span class="status" style="background: rgba(255, 0, 255, 0.3);">New | Key flo</span>
-            </a>
-            <a href="https://www.tiktok.com/@kunmodcrack?_t=ZS-8zkPoc6BR9c&_r=1" class="download-btn">
-                <i class="fa-solid fa-link"></i> <span <class="label">Follow Me - Support</span>
-                <span class="status" style="background: rgba(255, 165, 0, 0.3);">TikTok</span>
-            </a>
-            <a href="https://zalo.me/g/kifouj344" class="download-btn">
-                <i class="fas fa-users"></i> <span class="label">Info Group Link</span>
-                <span class="status" style="background: rgba(255, 0, 0, 0.3);"> NOTIFICATION</span>
-            </a>
-             <a href="https://zalo.me/g/mwevnt771" class="download-btn">
-                <i class="fas fa-users"></i> <span class="label">Info Group Link</span>
-                <span class="status" style="background: rgba(255, 0, 0, 0.3);">CHAT</span>
-            </a>
+        <h1 class="header">KunModCrack - Fake Lag Download</h1>
+        <div class="main-content">
+            <div class="section">
+                <h2 class="section-title">Download Client</h2>
+                <a href="https://link4sub.com/L32i" class="link-button">
+                    <i class="fas fa-download"></i>
+                    <span class="button-text">Download Panel FastVPN</span>
+                    <span class="tag tag-stable">Stable</span>
+                </a>
+                <a href="https://link4sub.com/a440" class="link-button">
+                    <i class="fas fa-download"></i>
+                    <span class="button-text">Download FakeLag PlayOnTeam</span>
+                    <span class="tag tag-optimized">New</span>
+                </a>
+                <a href="https://link4sub.com/MjUi" class="link-button">
+                    <i class="fas fa-download"></i>
+                    <span class="button-text">Download FakeLag V5</span>
+                    <span class="tag tag-new">Key : kunmodv5</span>
+                </a>
+                <a href="https://link4sub.com/Irvg" class="link-button">
+                    <i class="fas fa-download"></i>
+                    <span class="button-text">Download FakeLag V6</span>
+                    <span class="tag tag-new">Key : flo</span>
+                </a>
+            </div>
+            <div class="section">
+                <h2 class="section-title">       Information</h2>
+                <a href="https://www.tiktok.com/@kunmodcrack?_t=ZS-8zpBXOdjg2R&_r=1" class="link-button">
+                    <i class="fab fa-tiktok"></i>
+                    <span class="button-text">KunModCrack </span>
+                    <span class="tag tag-tiktok">TikTok</span>
+                </a>
+                <a href="https://youtube.com/@kunmodcrack?si=GCld5jvIW3HS5UZ2" class="link-button">
+                    <i class="fab fa-youtube"></i>
+                    <span class="button-text">KunModCrack</span>
+                    <span class="tag tag-notification">Youtube </span>
+                </a>
+                <a href="https://zalo.me/g/kifouj344" class="link-button">
+                    <i class="fas fa-comments"></i>
+                    <span class="button-text">Group Zalo</span>
+                    <span class="tag tag-chat">Notification</span>
+                </a>
+                <a href="https://zalo.me/g/mwevnt771" class="link-button">
+                    <i class="fas fa-users"></i>
+                    <span class="button-text">Group Zalo</span>
+                    <span class="tag tag-chat">Chat</span>
+                </a>
+                <a href="https://t.me/kunmodcrack" class="link-button">
+                    <i class="fa-brands fa-telegram"></i>
+                    <span class="button-text">Group Telegram</span>
+                    <span class="tag tag-chat">Chat</span>
+                </a>
+            </div>
         </div>
-        <div class="footer-text">⚡ Support :  @KunModCrack TikTok 🌊<br>© Creator By : @KunModCrack</div>
+        <div class="footer">
+            <p>⚡️ Support TikTok: <a href="https://www.tiktok.com/@kunmodcrack?_t=ZS-8zpBXOdjg2R&_r=1">@KunModCrack</a> 🌊</p>
+            <p>© Creator By : <a href="https://www.tiktok.com/@kunmodcrack?_t=ZS-8zpBXOdjg2R&_r=1">@KunModCrack</a></p>
+        </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script>
-        particlesJS("particles-js", {
-            particles: {
-                number: { value: 150, density: { enable: true, value_area: 800 } },
-                color: { value: ["#ff0000", "#ffa500", "#ffff00", "#008000", "#0000ff", "#4b0082", "#ee82ee"] },
-                shape: { type: "circle", stroke: { width: 0, color: "#000000" } },
-                opacity: { value: 0.5, random: true },
-                size: { value: 4, random: true },
-                line_linked: { enable: true, distance: 120, color: "#ffffff", opacity: 0.4, width: 1 },
-                move: { enable: true, speed: 3, direction: "none", random: true, straight: false, out_mode: "out", bounce: false }
+        particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 80,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#ffffff"
+                },
+                "shape": {
+                    "type": "circle"
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": false
+                },
+                "size": {
+                    "value": 3,
+                    "random": true
+                },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#ffffff",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 4,
+                    "direction": "none",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false
+                }
             },
-            interactivity: {
-                detect_on: "canvas",
-                events: { onhover: { enable: true, mode: "repulse" }, onclick: { enable: true, mode: "push" }, resize: true },
-                modes: { repulse: { distance: 100, duration: 0.4 }, push: { particles_nb: 4 } }
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "repulse"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "repulse": {
+                        "distance": 100,
+                        "duration": 0.4
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    }
+                }
             },
-            retina_detect: true
+            "retina_detect": true
         });
     </script>
 </body>
